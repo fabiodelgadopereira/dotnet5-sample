@@ -2,4 +2,4 @@
 
 ## Implantação inicial
 
-![swagger](/assets/swagger.png)
+![swagger](/BACK/assets/swagger.png)
