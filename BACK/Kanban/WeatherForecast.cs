@@ -1,6 +1,6 @@
 using System;
 
-namespace BACK
+namespace Kanban
 {
     public class WeatherForecast
     {
