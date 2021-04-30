@@ -8,6 +8,7 @@ namespace Kanban.Controllers
 {   
     [Route ("/cards")]
     [ApiController]
+    [Authorize ()]
     public class CardController
     {
 

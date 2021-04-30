@@ -7,7 +7,7 @@ Olá! Seja bem vindo ;)
 2. [Como executar essa aplicação](#Como-executar-essa-aplicacao)
 
 ## Projeto e Conteúdo
-Este repositório contém uma implementação
+Este repositório contém uma implementação para backend de um sistema de gerenciamento Kanban
 
 ## Como executar essa aplicação
 Para executar essa aplicação, primeiro é necessário instalar o .NET Core. Depois disso, você deve seguir os passos abaixo:
