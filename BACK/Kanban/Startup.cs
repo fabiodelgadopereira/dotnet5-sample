@@ -1,52 +1,49 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
+using Kanban.Data;
+using Kanban.Models;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.HttpsPolicy;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.OpenApi.Models;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Kanban.Data;
-using System.Text;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using AutoMapper;
 
-namespace Kanban
-{
-    public class Startup
-    {
-        public Startup(IConfiguration configuration)
-        {
+namespace Kanban {
+    public class Startup {
+        public Startup (IConfiguration configuration) {
             Configuration = configuration;
         }
 
         public IConfiguration Configuration { get; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
-        public void ConfigureServices(IServiceCollection services)
-        {
-           
-            services.AddControllers();
-            services.AddScoped<AuthRepository>();
+        public void ConfigureServices (IServiceCollection services) {
 
-            
-          
-                // Register the Swagger generator, defining 1 or more Swagger documents
+            services.AddControllers ();
+            services.AddAutoMapper(typeof(KanbanRepository).Assembly);
+            services.AddScoped<DataContext> ();
+            services.AddScoped<IAuthRepository, AuthRepository> ();
+            services.AddScoped<IKanbanRepository, KanbanRepository>();
+
+            // Register the Swagger generator, defining 1 or more Swagger documents
             services.AddAuthentication (JwtBearerDefaults.AuthenticationScheme)
-                .AddJwtBearer (options => 
-                {
-                   options.TokenValidationParameters = new TokenValidationParameters
-                    {
-                        ValidateIssuerSigningKey = true,
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes (Configuration["SecurityKey"])),
-                        ValidateIssuer = false,
-                        ValidateAudience = false
+                .AddJwtBearer (options => {
+                    options.TokenValidationParameters = new TokenValidationParameters {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey (Encoding.UTF8.GetBytes (Configuration["SecurityKey"])),
+                    ValidateIssuer = false,
+                    ValidateAudience = false
                     };
-                    
 
                     options.Events = new JwtBearerEvents {
                         OnAuthenticationFailed = context => {
@@ -60,7 +57,11 @@ namespace Kanban
                     };
                 });
 
-            services.AddMvc ().SetCompatibilityVersion (CompatibilityVersion.Version_2_2);
+            
+      
+            
+      
+            services.AddMvc ().SetCompatibilityVersion (CompatibilityVersion.Version_3_0);
             // Register the Swagger generator, defining 1 or more Swagger documents
             services.AddSwaggerGen (c => {
                 c.SwaggerDoc ("v1", new OpenApiInfo { Title = "Cadastro", Version = "v1" });
@@ -87,36 +88,30 @@ namespace Kanban
             });
         }
 
-        
-
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
-        {
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
+        public void Configure (IApplicationBuilder app, IWebHostEnvironment env) {
+            if (env.IsDevelopment ()) {
+                app.UseDeveloperExceptionPage ();
             }
-                // Enable middleware to serve generated Swagger as a JSON endpoint.
-            app.UseSwagger();
+            // Enable middleware to serve generated Swagger as a JSON endpoint.
+            app.UseSwagger ();
 
             // Enable middleware to serve swagger-ui (HTML, JS, CSS, etc.),
             // specifying the Swagger JSON endpoint.
-            app.UseSwaggerUI(c =>
-        {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
+            app.UseSwaggerUI (c => {
+                c.SwaggerEndpoint ("/swagger/v1/swagger.json", "My API V1");
             });
 
-            app.UseHttpsRedirection();
+            app.UseHttpsRedirection ();
 
-            app.UseRouting();
-            
+            app.UseRouting ();
+
             app.UseAuthentication ();
 
-            app.UseAuthorization();
+            app.UseAuthorization ();
 
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapControllers();
+            app.UseEndpoints (endpoints => {
+                endpoints.MapControllers ();
             });
         }
     }

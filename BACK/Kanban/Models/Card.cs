@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Kanban.Models
 {
@@ -11,7 +12,8 @@ namespace Kanban.Models
     lista: string*/
     public class Card
     {
-        Guid id { get; set; }
+        [Key]
+         public  Guid id { get; internal set; }
 
         [StringLength(80, MinimumLength = 3, ErrorMessage = "Você deve especificar um titulo entre 3 e 80 caracteres")]
         public string titulo { get; set; }
