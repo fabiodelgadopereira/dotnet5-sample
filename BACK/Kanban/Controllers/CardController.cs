@@ -11,13 +11,13 @@ using Microsoft.EntityFrameworkCore;
 namespace Kanban.Controllers {
     [Route ("/cards")]
     [ApiController]
-    // [Authorize ()]
+    [Authorize ()]
     public class CardController {
 
         [HttpGet]
         public async Task<List<Card>> Get () {
 
-            using (var context = new CardContext ()) {
+            await using (var context = new DataContext ()) {
                 return context.Cards.ToList ();
             }
         }
@@ -25,7 +25,7 @@ namespace Kanban.Controllers {
         [HttpPost]
         public async Task<ActionResult<Card>> Post ([FromBody] Card value) {
 
-            using (var db = new CardContext ()) {
+            await using (var db = new DataContext ()) {
                 db.Cards.Add (value);
                 db.SaveChanges ();
             }
@@ -35,7 +35,7 @@ namespace Kanban.Controllers {
         [HttpPut]
         public async Task<ActionResult<Card>> Put (Guid id, [FromBody] Card value) {
 
-            using (var db = new CardContext ()) {
+            await using (var db = new DataContext ()) {
 
                 var element = db.Cards.First (x => x.id == id);
 
@@ -58,7 +58,7 @@ namespace Kanban.Controllers {
 
         [HttpDelete]
         public async Task<ActionResult<Card>> Delete (Guid id) {
-            using (var db = new CardContext ()) {
+            await using (var db = new DataContext ()) {
 
                 var element = db.Cards.First (x => x.id == id);
 

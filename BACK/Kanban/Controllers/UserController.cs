@@ -7,65 +7,77 @@ using Kanban.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using System.Text;
-using System.Collections.Generic;
-using Kanban.Data;
 using Kanban.Dto;
+using AutoMapper;
+using Kanban.Data;
 
 namespace Kanban.Controllers {
     
-    [Route ("/login")]
     [ApiController]
     public class UserController : ControllerBase {
 
         private readonly IConfiguration _config;
-        private readonly AuthRepository _repository;
+        private readonly IMapper _mapper;
+        private readonly IAuthRepository _repo;
 
-        public UserController (IConfiguration config , AuthRepository repository) {
-            this._repository = repository;          
-            this._config = config;
+        public UserController(IAuthRepository repo, IConfiguration config, IMapper mapper)
+        {
+            _mapper = mapper;
+            _config = config;
+            _repo = repo;
         }
-        [HttpPost]
-        public async Task<ActionResult<User>> Post ([FromBody] UserForLogin value) {
+        [HttpPost("register")]
+        public async Task<IActionResult> Register(UserForLoginDto userForRegisterDto)
+        {
+            userForRegisterDto.login = userForRegisterDto.login.ToLower();
 
-            var result = await _repository.Login (value.login, value.senha);
+            if (await _repo.UserExists(userForRegisterDto.login))
+                return BadRequest("Username already exists");
 
-            var userToCreate = new User {
-                login = value.login,
-                senha = value.senha,
-                Id = 1
-            };
-            if (result.login == userToCreate.login && result.senha == userToCreate.senha ) {
-                return Ok (new {
-                    token = GenerateJwtToken (userToCreate).Result
-                });
-            }
-
-            return Unauthorized ();
-          
+            var userToCreate = _mapper.Map<User>(userForRegisterDto);
+    
+            var createdUser = await _repo.Register(userToCreate, userForRegisterDto.senha);
+           
+            return Ok("Usuário registrado com sucesso!");
         }
 
-        private async Task<string> GenerateJwtToken (User user) {
-            var claims = new List<Claim> {
-                new Claim (ClaimTypes.NameIdentifier, user.Id.ToString ()),
-                new Claim (ClaimTypes.Name, user.login)
+        [HttpPost("login")]
+        public async Task<IActionResult> Login(UserForLoginDto userForLoginDto)
+        {
+            var userFromRepo = await _repo.Login(userForLoginDto.login
+                .ToLower(), userForLoginDto.senha);
+
+            if (userFromRepo == null)
+                return Unauthorized();
+
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, userFromRepo.id.ToString()),
+                new Claim(ClaimTypes.Name, userFromRepo.login)
             };
 
-            var key = new SymmetricSecurityKey (Encoding.UTF8
-                .GetBytes (_config.GetSection ("SecurityKey").Value));
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config.GetSection("SecurityKey").Value));
 
-            var creds = new SigningCredentials (key, SecurityAlgorithms.HmacSha512Signature);
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);
 
-            var tokenDescriptor = new SecurityTokenDescriptor {
-                Subject = new ClaimsIdentity (claims),
-                Expires = DateTime.Now.AddDays (1),
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(claims),
+                Expires = DateTime.Now.AddDays(1),
                 SigningCredentials = creds
             };
 
-            var tokenHandler = new JwtSecurityTokenHandler ();
+            var tokenHandler = new JwtSecurityTokenHandler();
 
-            var token = tokenHandler.CreateToken (tokenDescriptor);
+            var token = tokenHandler.CreateToken(tokenDescriptor);
 
-            return tokenHandler.WriteToken (token);
+            var user = _mapper.Map<User>(userFromRepo);
+
+            return Ok(new
+            {
+                token = tokenHandler.WriteToken(token),
+                user
+            });
         }
     }
 }
