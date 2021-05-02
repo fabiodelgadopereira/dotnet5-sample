@@ -7,6 +7,9 @@ Olá! Seja bem vindo ;)
 2. [Como executar essa aplicação](#Como-executar-essa-aplicacao)
 3. [Adicionando e configurando o JWT](#Adicionando-e-configurando-o-JWT)
 4. [Entity Framework e SQLITE](#Entity-Framework-e-SQLITE)
+5. [Log com utilização de Filter](#Log-com-utilizacao-de-Filter)
+6. [Testes unitários (xUnit)](#Testes-unitArios-Xunit)
+7. [Publicação](#Publicação)
 
 
 ## Projeto e Conteúdo
@@ -112,6 +115,10 @@ dotnet add package System.IdentityModel.Tokens.Jwt
 
 O Entity Framework é uma ferramenta ORM da Microsoft madura e testada pelo mercado que pode ser usada para aplicações que usam o .NET Framework.
 
+O SQLite é uma biblioteca de código aberto (open source) desenvolvido na linguagem C que permite a disponibilização de um pequeno banco de dados na própria aplicação, sem a necessidade de acesso a um SGDB separado. A estrutura de banco junto com a aplicação é denominada de “banco de dados embutido” e é indicada para aplicações de pequeno porte, que utilizam poucos dados.   grande vantagem dos bancos de dados embutidos está em sua simplicidade: é mais prático implementar e administrar do que a implementação de SGDB´s separados, utilizando soluções como SQL Server e Oracle. Por outro lado, a performance e limitação de recursos são desvantagens do SQLite e soluções semelhantes. Para escolher a opção mais adequada, devem ser levados em consideração parâmetros como os exemplificados a seguir.(fonte Portal GSTI)
+
+Nessa implementação, foi utilizada essas duas ferramentas para acelerar o desenvolvimento e prototipação da aplicação.
+
 >  Exemplo de implementação
 ```C#
 using System;
@@ -122,28 +129,27 @@ namespace sqlite_app {
         static void Main (string[] args) {
             var connectionStringBuilder = new SqliteConnectionStringBuilder ();
 
-            //Use DB in project directory.  If it does not exist, create it:
+            //Use o banco de dados no diretório do projeto. Se não existir, crie-o:
             connectionStringBuilder.DataSource = "./SqliteDB.db";
 
             using (var connection = new SqliteConnection (connectionStringBuilder.ConnectionString)) {
                 connection.Open ();
 
-                //Create a table (drop if already exists first):
+                //Create a table (drop se já existir):
                 var delTableCmd = connection.CreateCommand ();
                 delTableCmd.CommandText = "DROP TABLE IF EXISTS Cards";
                 delTableCmd.ExecuteNonQuery ();
 
-
+                //criando uma tabela
                 var createTableCmd = connection.CreateCommand ();
                 createTableCmd.CommandText = @"CREATE TABLE Cards (
                                                 id longtext PRIMARY KEY,
                                                 titulo longtext NULL,
                                                 conteudo longtext NULL,
-                                                lista longtext NULL
-                                            );";
+                                                lista longtext NULL);";
                 createTableCmd.ExecuteNonQuery ();
 
-                //Seed some data:
+                //Inserindo algum dado:
                 using (var transaction = connection.BeginTransaction ()) {
                     var insertCmd = connection.CreateCommand ();
 
@@ -158,14 +164,124 @@ namespace sqlite_app {
                 var selectCmd = connection.CreateCommand ();
                 selectCmd.CommandText = "SELECT * FROM Cards";
 
+                selectCmd.CommandText = "SELECT  * FROM Cards";
+
                 using (var reader = selectCmd.ExecuteReader ()) {
                     while (reader.Read ()) {
-                        var message = reader.GetString (0)+reader.GetString (1)+reader.GetString (2)+reader.GetString (3);
-                        Console.WriteLine (message);
+                        for (int i = 0; i < reader.FieldCount; i++) {
+                            Console.WriteLine (reader.GetString (i));
+                        }
                     }
                 }
             }
         }
     }
 }
+```
+
+## Log com utilização de Filter
+
+`Filter` permitem que você execute código em determinados estágios do pipeline de processamento da solicitação. Um filtro de ação é um filtro executado antes ou depois da execução de um método de ação. Usando filtros de ação, você pode tornar seus métodos de ação enxutos, limpos e fáceis de manter.
+
+>  Exemplo de implementação
+
+```C#
+public class CustomActionFilter : ActionFilterAttribute
+    {
+        private readonly ILogger _logger;
+    public CustomActionFilter(ILoggerFactory loggerFactory)
+        {
+            _logger = loggerFactory.CreateLogger("CustomActionFilter");
+        }
+     public override void OnActionExecuting(ActionExecutingContext context)
+        {
+            _logger.LogWarning("Log de alguma ação durante a execução...");
+            base.OnActionExecuting(context);
+        }
+    public override void OnActionExecuted(ActionExecutedContext context)
+        {
+            _logger.LogWarning("Log de alguma ação após a execução...");
+            base.OnActionExecuted(context);
+        }
+    public override void OnResultExecuting(ResultExecutingContext context)
+        {
+            _logger.LogWarning("Log de algum resultado durante a execução...");
+            base.OnResultExecuting(context);
+        }
+    public override void OnResultExecuted(ResultExecutedContext context)
+        {
+            _logger.LogWarning("Log de algum resultado após a execução...");
+            base.OnResultExecuted(context);
+        }
+    }
+```
+Registe o serviço na classe `Startup.cs`
+
+```C#
+public void ConfigureServices(IServiceCollection services)
+{
+  services.AddScoped<CustomActionFilter>();
+}
+```
+
+Adcione a Tag `ServiceFilter` no acima do metodo para ser monitoriado, exemplo:
+```C#
+        [ServiceFilter(typeof(CustomActionFilter))]
+        [HttpDelete]
+        public async Task<ActionResult<Card>> Delete (Guid id) {
+```
+O resultado pode ser visto no prompt. Nessa implementação o filter é ativado sempre que os entrypoints de alteração ou remoção forem usados
+![swagger](/BACK/Kanban/assets/filter.png)
+
+## Testes unitários (xUnit)
+
+Teste de unidade é toda a aplicação de teste nas assinaturas de entrada e saída de um sistema. Consiste em validar dados válidos e inválidos via I/O (entrada/saída) sendo aplicado por desenvolvedores ou analistas de teste. Uma unidade é a menor parte testável de um programa de computador. Em programação procedural, uma unidade pode ser uma função individual ou um procedimento. Idealmente, cada teste de unidade é independente dos demais, o que possibilita ao programador testar cada módulo isoladamente.
+O xUnit é uma ferramenta de teste de unidade focada na comunidade, gratuita e de código aberto para o .NET Framework. Escrito pelo inventor original do NUnit v2, xUnit.net é a mais recente tecnologia para testes de unidade C #, F #, VB.NET e outras linguagens .NET. xUnit.net funciona com ReSharper, CodeRush, TestDriven.NET e Xamarin. Faz parte da .NET Foundation e opera de acordo com seu código de conduta. Ele está licenciado sob Apache 2 (uma licença aprovada pela OSI).
+
+> Utilize o comando abaixo para instalar o componente, e gerar a pasta de testes:
+```shell
+dotnet add package Xunit
+dotnet new xunit -o DotnetCoreApp.Tests
+```
+
+> exemplo de classe de teste
+```C#
+using System;
+using Xunit;
+
+namespace DotnetCoreApp.test
+{
+    public class UnitTest1
+    {
+        [Fact]
+        public void PassingTest()
+        {
+            Assert.Equal(4, Add(2, 2));
+        }
+
+        [Fact]
+        public void FailingTest()
+        {
+            Assert.Equal(5, Add(2, 2));
+        }
+
+        int Add(int x, int y)
+        {
+            return x + y;
+        }
+    }
+}
+```
+> Para executar utilize o comando abaixo na pasta
+```shell
+dotnet test /p:CollectCoverage=true
+```
+
+## Publicação
+
+Ao publicar a sua aplicação, é necessário específicar o sistema operacional e arquitetura de CPU. Ao publicar seu aplicativo e criar um executável, você pode publicar o aplicativo como independente ou dependente de tempo de execução. 
+Você pode criar um executável para `-r <RID> --self-contained false` uma plataforma dotnet publish específica passando os parâmetros para o comando. Quando `-r` o parâmetro é omitido, um executável é criado para sua plataforma atual. Todos os pacotes NuGet que tenham dependências específicas da plataforma para a plataforma-alvo são copiados para a pasta de publicação.
+
+```shell
+dotnet publish -c Release -r win-x64 --self-contained true
 ```
