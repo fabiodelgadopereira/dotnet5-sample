@@ -18,6 +18,7 @@ namespace Kanban.Models
         [StringLength(80, MinimumLength = 3, ErrorMessage = "Você deve especificar um titulo entre 3 e 80 caracteres")]
         public string titulo { get; set; }
 
+        [StringLength(400, MinimumLength = 3, ErrorMessage = "Você deve especificar um titulo entre 3 e 400 caracteres")]
         public string conteudo { get; set; }
 
         public string lista { get; set; }

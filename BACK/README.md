@@ -272,7 +272,12 @@ namespace DotnetCoreApp.test
     }
 }
 ```
-> Para executar utilize o comando abaixo na pasta
+> Para executar utilize o comando abaixo na pasta de Kanban.test
+```shell
+dotnet test 
+```
+
+> Para executar a cobertura de test  utilize o comando abaixo na pasta de Kanban.test
 ```shell
 dotnet test /p:CollectCoverage=true
 ```
