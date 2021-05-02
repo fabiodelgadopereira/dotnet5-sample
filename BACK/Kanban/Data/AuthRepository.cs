@@ -45,12 +45,6 @@ namespace Kanban.Data
 
              user.passwordHash = passwordHash;
              user.passwordSalt = passwordSalt;
-               Console.WriteLine("#########################");
-            Console.WriteLine(user.login);
-             Console.WriteLine(user.passwordHash.ToString());
-             Console.WriteLine(user.passwordSalt.ToString());
-  
-             Console.WriteLine("#########################");
 
             await _context.Users.AddAsync(user);
 

@@ -64,7 +64,7 @@ namespace Kanban {
             services.AddMvc ().SetCompatibilityVersion (CompatibilityVersion.Version_3_0);
             // Register the Swagger generator, defining 1 or more Swagger documents
             services.AddSwaggerGen (c => {
-                c.SwaggerDoc ("v1", new OpenApiInfo { Title = "Cadastro", Version = "v1" });
+                c.SwaggerDoc ("v1", new OpenApiInfo { Title = "Kanban", Version = "v1" });
                 // Define the OAuth2.0 scheme that's in use (i.e. Implicit Flow)
                 c.AddSecurityDefinition ("Bearer", new OpenApiSecurityScheme {
                     Description = "JWT Authorization header using the Bearer scheme.",
