@@ -1,6 +1,5 @@
 using Kanban.Dto;
 using Kanban.Models;
-using System.Linq;
 using AutoMapper;
 
 namespace Kanban.Data
@@ -10,7 +9,6 @@ namespace Kanban.Data
         public AutoMapperProfiles()
         {
             CreateMap<UserForLoginDto,User>();
-
         }
     }
 
