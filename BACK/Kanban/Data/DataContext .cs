@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Kanban.Models;
+using Microsoft.Data.Sqlite;
 
 namespace Kanban.Data
 {
@@ -12,8 +13,7 @@ namespace Kanban.Data
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlServer(
-                @"Data Source=DESKTOP-NE0O540;Initial Catalog=CadastroDB;Integrated Security=False;User ID=delgado;Password=xxx;");
+            optionsBuilder.UseSqlite(@"Data Source=./SqliteDB.db");
         }
         
     }

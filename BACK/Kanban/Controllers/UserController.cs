@@ -75,8 +75,7 @@ namespace Kanban.Controllers {
 
             return Ok(new
             {
-                token = tokenHandler.WriteToken(token),
-                user
+                token = tokenHandler.WriteToken(token)
             });
         }
     }
