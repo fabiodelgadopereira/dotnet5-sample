@@ -4,20 +4,22 @@ using System.Linq;
 using System.Threading.Tasks;
 using Kanban.Data;
 using Kanban.Models;
+using Kanban.services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+
 
 namespace Kanban.Controllers {
     [Route ("/cards")]
     [ApiController]
     [Authorize ()]
     public class CardController {
-
+       
         [HttpGet]
         public async Task<List<Card>> Get () {
 
             await using (var context = new DataContext ()) {
+               
                 return context.Cards.ToList ();
             }
         }
@@ -32,6 +34,7 @@ namespace Kanban.Controllers {
             return value;
         }
 
+        [ServiceFilter(typeof(CustomActionFilter))]
         [HttpPut]
         public async Task<ActionResult<Card>> Put (Guid id, [FromBody] Card value) {
 
@@ -50,12 +53,10 @@ namespace Kanban.Controllers {
 
                     return element;
                 }
-
                 return element;
-
             }
         }
-
+        [ServiceFilter(typeof(CustomActionFilter))]
         [HttpDelete]
         public async Task<ActionResult<Card>> Delete (Guid id) {
             await using (var db = new DataContext ()) {

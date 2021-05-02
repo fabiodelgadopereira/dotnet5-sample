@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Kanban.Data;
+using Kanban.services;
 using Kanban.Models;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
@@ -34,6 +35,7 @@ namespace Kanban {
             services.AddScoped<DataContext> ();
             services.AddScoped<IAuthRepository, AuthRepository> ();
             services.AddScoped<IKanbanRepository, KanbanRepository>();
+            services.AddScoped<CustomActionFilter>();
 
             // Register the Swagger generator, defining 1 or more Swagger documents
             services.AddAuthentication (JwtBearerDefaults.AuthenticationScheme)

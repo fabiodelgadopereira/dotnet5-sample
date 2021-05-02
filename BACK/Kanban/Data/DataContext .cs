@@ -1,7 +1,5 @@
-using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Kanban.Models;
-using Microsoft.Data.Sqlite;
 
 namespace Kanban.Data
 {
