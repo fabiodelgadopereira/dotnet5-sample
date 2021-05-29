@@ -24,7 +24,7 @@ Para executar essa aplicação, primeiro é necessário instalar o .NET Core. De
 dotnet run
 ```
 4. A aplicação deverá estar disponivel em seu navegador no endereço: https://0.0.0.0:5000/swagger
-![swagger](/BACK/Kanban/assets/swagger.png)
+![swagger](/Kanban/assets/swagger.png)
 
 ## JWT
 O JWT (JSON Web Token) nada mais é que um padrão (RFC-7519) de mercado que define como transmitir e armazenar objetos JSON de forma simples, compacta e segura entre diferentes aplicações, muito utilizado para validar serviços em Web Services pois os dados contidos no token gerado pode ser validado a qualquer momento uma vez que ele é assinado digitalmente.
@@ -231,7 +231,7 @@ Adcione a Tag `ServiceFilter` no acima do metodo para ser monitoriado, exemplo:
         public async Task<ActionResult<Card>> Delete (Guid id) {
 ```
 O resultado pode ser visto no prompt. Nessa implementação o filter é ativado sempre que os entrypoints de alteração ou remoção forem usados
-![swagger](/BACK/Kanban/assets/filter.png)
+![swagger](/Kanban/assets/filter.png)
 
 ## Testes unitários (xUnit)
 
