@@ -1,100 +1,292 @@
-# Desafio Técnico - Backend
+## Dotnet 5 - sample
 
-O propósito desse desafio é a criação de uma API que fará a persistência de dados de um quadro de kanban. Esse quadro possui listas, que contém cards.
+Olá! Seja bem vindo ;)
 
-## Rodando o Frontend
+## Índice
+1. [Projeto e Conteúdo](#Projeto-e-Conteudo)
+2. [Como executar essa aplicação](#Como-executar-essa-aplicacao)
+3. [Adicionando e configurando o JWT](#Adicionando-e-configurando-o-JWT)
+4. [Entity Framework e SQLITE](#Entity-Framework-e-SQLITE)
+5. [Log com utilização de Filter](#Log-com-utilizacao-de-Filter)
+6. [Testes unitários (xUnit)](#Testes-unitArios-Xunit)
+7. [Publicação](#Publicação)
 
-Um frontend de exemplo foi disponibilizado na pasta FRONT.
 
-Para rodá-lo, faça:
+## Projeto e Conteúdo
+Este repositório contém uma implementação para backend de um sistema de gerenciamento, CRUD, autenticação e persistencia em banco de dados SQLITE.
 
-```console
-> cd FRONT
-> yarn
-> yarn start
+## Como executar essa aplicação
+Para executar essa aplicação, primeiro é necessário instalar o .NET Core. Depois disso, você deve seguir os passos abaixo:
+1. Clone ou faça o download deste repositório.
+2. Extraia o conteúdo se o download for um arquivo zip. Verifique se os arquivos estão com read-write.
+3. Execute o comando abaixo no prompt de comando.
+```shell
+dotnet run
+```
+4. A aplicação deverá estar disponivel em seu navegador no endereço: https://0.0.0.0:5000/swagger
+![swagger](/Kanban/assets/swagger.png)
+
+## JWT
+O JWT (JSON Web Token) nada mais é que um padrão (RFC-7519) de mercado que define como transmitir e armazenar objetos JSON de forma simples, compacta e segura entre diferentes aplicações, muito utilizado para validar serviços em Web Services pois os dados contidos no token gerado pode ser validado a qualquer momento uma vez que ele é assinado digitalmente.
+
+JSON Web Tokens (JWT) é um padrão stateless porque o servidor autorizador não precisa manter nenhum estado; o próprio token é sulficiente para verificar a autorização de um portador de token.
+
+Os JWTs são assinados usando um algoritmo de assinatura digital (por exemplo, RSA) que não pode ser forjado. Por isso, qualquer pessoa que confie no certificado do assinante pode confiar com segurança que o JWT é autêntico. Não há necessidade de um servidor consultar o servidor emissor de token para confirmar sua autenticidade.
+
+fonte: https://jwt.io/introduction/
+
+> Para importar esse componente para seu projeto, basta executar no prompt o comando abaixo ou utilizar o Nuget 
+
+```shell
+dotnet add package System.IdentityModel.Tokens.Jwt
 ```
 
-## Desafio
+### Adicionando e configurando o JWT
 
-Você precisa criar uma API REST de acordo com os requisitos abaixo, que deve ser desenvolvido na pasta "BACK".
+> Definir chave secreta no arquivo `appsettings.json`:
 
-Para criar sua API você pode escolher entre duas tecnologias:
-
-1. Javascript ou Typescript + NodeJS + Express
-2. C# + ASP.NET Core + WebApi
-
-## Requisitos
-
-1. O sistema deve ter um mecanismo de login usando JWT, com um entrypoint que recebe `{ "login":"letscode", "senha":"lets@123"}` e gera um token.
-
-2. O sistema deve ter um middleware que valide se o token é correto, valido e não está expirado, antes de permitir acesso a qualquer outro entrypoint. Em caso negativo retorne status 401.
-
-3. O login e senha fornecidos devem estar em variáveis de ambiente e terem uma versão para o ambiente de desenvolvimento vinda de um arquivo .env no node ou de um arquivo de configuração no ASP.NET. Esse arquivo não deve subir ao GIT, mas sim um arquivo de exemplo sem os valores reais. O mesmo vale para qualquer "segredo" do sistema, como a chave do JWT.
-
-4. Um card terá o seguinte formato: 
-
+```Json
+ },
+  "SecurityKey": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
 ```
-id: int | (guid [c#] | uuid [node])
-titulo : string, 
-conteudo: string, 
-lista: string
+> Implementar uma classe Controller para gestão das credenciais, nessa implementação é a  `TokenController.cs`.
+- Injetar intância de Configuration
+- Criar método Action POST RequestToken()
+ - Validar credenciais do usuário 
+ - Definir claims
+ - Definir chave 
+ - Definir credenciais 
+ - Gerar token (data expiração)
+
+ 
+> Adicione o gerador manipulador de autenticação `services.AddAuthentication` à coleção de serviços no método `Startup.ConfigureServices`. No método `Startup.Configure`, ative o middleware para requisitar a autenticação: 
+
+```C#
+        public void ConfigureServices (IServiceCollection services) {
+             services.AddScoped<ClienteRepository>();
+            //especifica o esquema usado para autenticacao do tipo Bearer
+            // e 
+            //define configurações como chave,algoritmo,validade, data expiracao...
+            services.AddAuthentication (JwtBearerDefaults.AuthenticationScheme)
+                .AddJwtBearer (options => {
+                    options.TokenValidationParameters = new TokenValidationParameters {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = "aplicacao",
+                    ValidAudience = "canal",
+                    IssuerSigningKey = new SymmetricSecurityKey (
+                    Encoding.UTF8.GetBytes (Configuration["SecurityKey"]))
+                    };
+
+                    options.Events = new JwtBearerEvents {
+                        OnAuthenticationFailed = context => {
+                                Console.WriteLine ("Token inválido..:. " + context.Exception.Message);
+                                return Task.CompletedTask;
+                            },
+                            OnTokenValidated = context => {
+                                Console.WriteLine ("Toekn válido...: " + context.SecurityToken);
+                                return Task.CompletedTask;
+                            }
+                    };
+                });
+
+            services.AddMvc ().SetCompatibilityVersion (CompatibilityVersion.Version_2_2);
+            
+        }
+
+        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
+        public void Configure (IApplicationBuilder app, IHostingEnvironment env) {
+
+            if (env.IsDevelopment ()) {
+                app.UseDeveloperExceptionPage ();
+            } else {
+                // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
+                app.UseHsts ();
+            }
+
+            app.UseAuthentication ();
+            app.UseMvc ();
+        }
 ```
 
-5. Os entrypoints da aplicação devem usar a porta 5000 e ser:
+## Entity Framework e SQLITE
 
+O Entity Framework é uma ferramenta ORM da Microsoft madura e testada pelo mercado que pode ser usada para aplicações que usam o .NET Framework.
+
+O SQLite é uma biblioteca de código aberto (open source) desenvolvido na linguagem C que permite a disponibilização de um pequeno banco de dados na própria aplicação, sem a necessidade de acesso a um SGDB separado. A estrutura de banco junto com a aplicação é denominada de “banco de dados embutido” e é indicada para aplicações de pequeno porte, que utilizam poucos dados.   grande vantagem dos bancos de dados embutidos está em sua simplicidade: é mais prático implementar e administrar do que a implementação de SGDB´s separados, utilizando soluções como SQL Server e Oracle. Por outro lado, a performance e limitação de recursos são desvantagens do SQLite e soluções semelhantes. Para escolher a opção mais adequada, devem ser levados em consideração parâmetros como os exemplificados a seguir.(fonte Portal GSTI)
+
+Nessa implementação, foi utilizada essas duas ferramentas para acelerar o desenvolvimento e prototipação da aplicação.
+
+>  Exemplo de implementação
+```C#
+using System;
+using Microsoft.Data.Sqlite;
+
+namespace sqlite_app {
+    class Program {
+        static void Main (string[] args) {
+            var connectionStringBuilder = new SqliteConnectionStringBuilder ();
+
+            //Use o banco de dados no diretório do projeto. Se não existir, crie-o:
+            connectionStringBuilder.DataSource = "./SqliteDB.db";
+
+            using (var connection = new SqliteConnection (connectionStringBuilder.ConnectionString)) {
+                connection.Open ();
+
+                //Create a table (drop se já existir):
+                var delTableCmd = connection.CreateCommand ();
+                delTableCmd.CommandText = "DROP TABLE IF EXISTS Cards";
+                delTableCmd.ExecuteNonQuery ();
+
+                //criando uma tabela
+                var createTableCmd = connection.CreateCommand ();
+                createTableCmd.CommandText = @"CREATE TABLE Cards (
+                                                id longtext PRIMARY KEY,
+                                                titulo longtext NULL,
+                                                conteudo longtext NULL,
+                                                lista longtext NULL);";
+                createTableCmd.ExecuteNonQuery ();
+
+                //Inserindo algum dado:
+                using (var transaction = connection.BeginTransaction ()) {
+                    var insertCmd = connection.CreateCommand ();
+
+                    insertCmd.CommandText = @"INSERT INTO Cards VALUES('EB913853-1BF2-4364-42FB-08D90CBBE8D8'
+                                            ,'titulo exemplo','conteudo descrito','lista detalhada')";
+                    insertCmd.ExecuteNonQuery ();
+
+                    transaction.Commit ();
+                }
+
+                //Read the newly inserted data:
+                var selectCmd = connection.CreateCommand ();
+                selectCmd.CommandText = "SELECT * FROM Cards";
+
+                selectCmd.CommandText = "SELECT  * FROM Cards";
+
+                using (var reader = selectCmd.ExecuteReader ()) {
+                    while (reader.Read ()) {
+                        for (int i = 0; i < reader.FieldCount; i++) {
+                            Console.WriteLine (reader.GetString (i));
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 ```
-(POST)      http://0.0.0.0:5000/login/
 
-(GET)       http://0.0.0.0:5000/cards/
-(POST)      http://0.0.0.0:5000/cards/
-(PUT)       http://0.0.0.0:5000/cards/{id}
-(DELETE)    http://0.0.0.0:5000/cards/{id}
+## Log com utilização de Filter
+
+`Filter` permitem que você execute código em determinados estágios do pipeline de processamento da solicitação. Um filtro de ação é um filtro executado antes ou depois da execução de um método de ação. Usando filtros de ação, você pode tornar seus métodos de ação enxutos, limpos e fáceis de manter.
+
+>  Exemplo de implementação
+
+```C#
+public class CustomActionFilter : ActionFilterAttribute
+    {
+        private readonly ILogger _logger;
+    public CustomActionFilter(ILoggerFactory loggerFactory)
+        {
+            _logger = loggerFactory.CreateLogger("CustomActionFilter");
+        }
+     public override void OnActionExecuting(ActionExecutingContext context)
+        {
+            _logger.LogWarning("Log de alguma ação durante a execução...");
+            base.OnActionExecuting(context);
+        }
+    public override void OnActionExecuted(ActionExecutedContext context)
+        {
+            _logger.LogWarning("Log de alguma ação após a execução...");
+            base.OnActionExecuted(context);
+        }
+    public override void OnResultExecuting(ResultExecutingContext context)
+        {
+            _logger.LogWarning("Log de algum resultado durante a execução...");
+            base.OnResultExecuting(context);
+        }
+    public override void OnResultExecuted(ResultExecutedContext context)
+        {
+            _logger.LogWarning("Log de algum resultado após a execução...");
+            base.OnResultExecuted(context);
+        }
+    }
+```
+Registe o serviço na classe `Startup.cs`
+
+```C#
+public void ConfigureServices(IServiceCollection services)
+{
+  services.AddScoped<CustomActionFilter>();
+}
 ```
 
-6. Para inserir um card o título, o conteúdo e o nome da lista devem estar preenchidos, o id não deve conter valor. Ao inserir retorne o card completo incluindo o id atribuído com o statusCode apropriado. Caso inválido, retorne status 400.
+Adcione a Tag `ServiceFilter` no acima do metodo para ser monitoriado, exemplo:
+```C#
+        [ServiceFilter(typeof(CustomActionFilter))]
+        [HttpDelete]
+        public async Task<ActionResult<Card>> Delete (Guid id) {
+```
+O resultado pode ser visto no prompt. Nessa implementação o filter é ativado sempre que os entrypoints de alteração ou remoção forem usados
+![swagger](/Kanban/assets/filter.png)
 
-7. Para alterar um card, o entrypoint deve receber um id pela URL e um card pelo corpo da requisição. Valem as mesmas regras de validação do item acima exceto que o id do card deve ser o mesmo id passado pela URL. Na alteração todos os campos são alterados. Caso inválido, retorne status 400. Caso o id não exista retorne 404. Se tudo correu bem, retorne o card alterado.
+## Testes unitários (xUnit)
 
-8. Para remover um card, o entrypoint deve receber um id pela URL. Caso o id não exista retorne 404. Se a remoção for bem sucedida retorne a lista de cards.
+Teste de unidade é toda a aplicação de teste nas assinaturas de entrada e saída de um sistema. Consiste em validar dados válidos e inválidos via I/O (entrada/saída) sendo aplicado por desenvolvedores ou analistas de teste. Uma unidade é a menor parte testável de um programa de computador. Em programação procedural, uma unidade pode ser uma função individual ou um procedimento. Idealmente, cada teste de unidade é independente dos demais, o que possibilita ao programador testar cada módulo isoladamente.
+O xUnit é uma ferramenta de teste de unidade focada na comunidade, gratuita e de código aberto para o .NET Framework. Escrito pelo inventor original do NUnit v2, xUnit.net é a mais recente tecnologia para testes de unidade C #, F #, VB.NET e outras linguagens .NET. xUnit.net funciona com ReSharper, CodeRush, TestDriven.NET e Xamarin. Faz parte da .NET Foundation e opera de acordo com seu código de conduta. Ele está licenciado sob Apache 2 (uma licença aprovada pela OSI).
 
-9. A listagem de cards deve enviar todos os cards em formato json, contendo as informações completas. 
-
-10. Deve ser usada alguma forma de persistência, no C# pode-se usar o Entity Framework (in-memory), no nodeJS pode ser usado Sequelize + sqlite (in-memory) ou diretamente o driver do sqlite (in-memory).
-
-11. Se preferir optar por utilizar um banco de dados "real", adicione um docker-compose em seu repositório que coloque a aplicação e o banco em execução, quando executado `docker-compose up` na raiz. A connection string e a senha do banco devem ser setados por ENV nesse arquivo.
-
-12. O campo conteúdo do card aceitará markdown, isso não deve impactar no backend, mas não custa avisar...
-
-13. Faça um filter (asp.net) ou middleware (nodejs) que escreva no console sempre que os entrypoints de alteração ou remoção forem usados, indicando o horário formatado como o datetime a seguir: `01/01/2021 13:45:00`. 
-
-A linha de log deve ter o seguinte formato (se a requisição for válida):
-
-`<datetime> - Card <id> - <titulo> - <Remover|Alterar>`
-
-Exemplo:
-
-```console
-> 01/01/2021 13:45:00 - Card 1 - Comprar Pão - Removido
+> Utilize o comando abaixo para instalar o componente, e gerar a pasta de testes:
+```shell
+dotnet add package Xunit
+dotnet new xunit -o DotnetCoreApp.Tests
 ```
 
-14. O projeto deve ser colocado em um repositório GITHUB ou equivalente, estar público, e conter um readme.md que explique em detalhes qualquer comando ou configuração necessária para fazer o projeto rodar. Por exemplo, como configurar as variáveis de ambiente, como rodar migrations (se foram usadas). 
+> exemplo de classe de teste
+```C#
+using System;
+using Xunit;
 
-15. A entrega será apenas a URL para clonarmos o repositório.
+namespace DotnetCoreApp.test
+{
+    public class UnitTest1
+    {
+        [Fact]
+        public void PassingTest()
+        {
+            Assert.Equal(4, Add(2, 2));
+        }
 
-## Diferenciais e critérios de avaliação
+        [Fact]
+        public void FailingTest()
+        {
+            Assert.Equal(5, Add(2, 2));
+        }
 
-Arquiteturas que separem responsabilidades, de baixo acoplamento e alta-coesão são preferíveis, sobretudo usando dependências injetadas, que permitam maior facilidade para testes unitários e de integração.
+        int Add(int x, int y)
+        {
+            return x + y;
+        }
+    }
+}
+```
+> Para executar utilize o comando abaixo na pasta de Kanban.test
+```shell
+dotnet test 
+```
 
-Avaliaremos se o código é limpo (com boa nomenclatura de classes, variáveis, métodos e funções) e dividido em arquivos bem nomeados, de forma coesa e de acordo com boas práticas. Bem como práticas básicas como tratamento de erros.
+> Para executar a cobertura de test  utilize o comando abaixo na pasta de Kanban.test
+```shell
+dotnet test /p:CollectCoverage=true
+```
 
-Desacoplar e testar as regras de negócios / validações / repositório com testes unitários será considerado um diferencial.
+## Publicação
 
-O uso de typescript no node acompanhado das devidas configurações e tipagens bem feitas, bem como uso de técnicas de abstração usando interfaces (especialmente do repositório) serão consideradas um deferencial.
+Ao publicar a sua aplicação, é necessário específicar o sistema operacional e arquitetura de CPU. Ao publicar seu aplicativo e criar um executável, você pode publicar o aplicativo como independente ou dependente de tempo de execução. 
+Você pode criar um executável para `-r <RID> --self-contained false` uma plataforma dotnet publish específica passando os parâmetros para o comando. Quando `-r` o parâmetro é omitido, um executável é criado para sua plataforma atual. Todos os pacotes NuGet que tenham dependências específicas da plataforma para a plataforma-alvo são copiados para a pasta de publicação.
 
-O uso de Linter será considerado um diferencial.
-
-A criação de um docker-compose e de dockerfiles que ao rodar `docker-compose up` subam o sistema por completo (front, back e banco [se houver]) será considerado um diferencial.
-
-Teve dificuldade com algo, ou fez algo meio esquisito para simplificar algo que não estava conseguindo fazer? Deixe uma observação com a justificativa no readme.md para nós...
-
-Entregou incompleto, teve dificuldade com algo, ou fez algo meio esquisito para simplificar alguma coisa que não estava conseguindo fazer? Deixe uma observação com a justificativa no readme.md para nós...
+```shell
+dotnet publish -c Release -r win-x64 --self-contained true
+```
